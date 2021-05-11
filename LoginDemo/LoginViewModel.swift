@@ -9,42 +9,42 @@ import Foundation
 import RxSwift
 import RxCocoa
 
-class User {
-    var name: String = ""
-    var password = ""
-
-    init(name: String, password: String) {
-        self.name = name
-        self.password = password
-    }
-}
-
 struct Validation {
     static let minimumUserNameLength = 6
     static let minimumPasswordLength = 6
 }
 
 final class LoginViewModel {
-    typealias LoginViewModelParams = (username: ControlProperty<String>, pw: ControlProperty<String>, loginTap: Observable<Void>)
+    var username = BehaviorRelay<String>(value: "")
+    var password = BehaviorRelay<String>(value: "")
+    let onShowAlert = PublishSubject<String>()
+    let loginButtonTapped = PublishSubject<Void>()
+    private let disposeBag = DisposeBag()
     
-    let loginEnabled: Observable<Bool>
-    let loginObservable: Observable<String>
+    var loginButtonEnabled: Observable<Bool> {
+        return Observable.combineLatest(usernameValid, passwordValid) { $0 && $1 }
+    }
     
-    init(input: LoginViewModelParams) {
-        let validatedUsername: Observable<Bool> = input.username
-            .map { $0.count > Validation.minimumUserNameLength }
+    private var usernameValid: Observable<Bool> {
+        return username.asObservable().map { $0.count > Validation.minimumUserNameLength }
+    }
+    
+    private var passwordValid: Observable<Bool> {
+        return password.asObservable().map { $0.count > Validation.minimumPasswordLength }
+    }
+    
+    init() {
+        loginButtonTapped.subscribe(
+            onNext: { [weak self] in
+                guard let this = self else { return }
+                API.request(path: "login", username: this.username.value).subscribe(
+                    onNext: { name in
+                        this.onShowAlert.onNext(name)
+                    }
+                ).disposed(by: this.disposeBag)
+            }
+        ).disposed(by: disposeBag)
         
-        let validatedPassword: Observable<Bool> = input.pw
-            .map { $0.count > Validation.minimumUserNameLength }
-        
-        loginEnabled = Observable.combineLatest(validatedUsername, validatedPassword) { $0 && $1 }
-        
-        let userAndPassword = Observable.combineLatest(input.username, input.pw) { ($0, $1) }
-
-        loginObservable = input.loginTap
-            .withLatestFrom(userAndPassword)
-            .flatMapLatest { (username, _) in
-            return API.request(path: "login", username: username)
-        }
+        username.accept("LeDucTanh")
     }
 }

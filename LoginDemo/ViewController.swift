@@ -15,30 +15,46 @@ class ViewController: UIViewController {
     @IBOutlet weak var loginButton: UIButton!
     let disposeBag = DisposeBag()
     
-    var viewModel: LoginViewModel!
+    var viewModel = LoginViewModel()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupViewModel()
-        setupObservable()
+        bindViewModel()
     }
     
-    private func setupViewModel() {
-        viewModel = LoginViewModel(input: (username: usernameTextField.rx.text.orEmpty, pw: passwordTextField.rx.text.orEmpty, loginTap: loginButton.rx.tap.asObservable()))
+    private func bindViewModel() {
+        bind(textField: usernameTextField, to: viewModel.username)
+        bind(textField: passwordTextField, to: viewModel.password)
         
-        viewModel.loginObservable
-            .bind { [weak self] username in
-                guard let this = self else { return }
-                this.showAlert(message: "Logged in as \(username)")
-            }
+        viewModel.loginButtonEnabled
+            .bind(to: loginButton.rx.isEnabled)
             .disposed(by: disposeBag)
+        
+        loginButton.rx.tap.asObservable()
+            .bind(to: viewModel.loginButtonTapped)
+            .disposed(by: disposeBag)
+        
+        viewModel.onShowAlert.bind { [weak self] username in
+            guard let this = self else { return }
+            this.showAlert(message: "Logged in as \(username)")
+        }
+        .disposed(by: disposeBag)
+        
+//        viewModel.onShowAlert.subscribe(
+//            onNext: { [weak self] username in
+//                guard let this = self else { return }
+//                this.showAlert(message: "Logged in as \(username)")
+//            }
+//        ).disposed(by: disposeBag)
     }
     
-    private func setupObservable() {
-        viewModel.loginEnabled.bind { [weak self] valid in
-            guard let this = self else { return }
-            this.loginButton.isEnabled = valid
-        }.disposed(by: disposeBag)
+    private func bind(textField: UITextField, to behaviorRelay: BehaviorRelay<String>) {
+        behaviorRelay.asObservable()
+            .bind(to: textField.rx.text.orEmpty)
+            .disposed(by: disposeBag)
+        textField.rx.text.orEmpty
+            .bind(to: behaviorRelay)
+            .disposed(by: disposeBag)
     }
 }
 

@@ -19,8 +19,8 @@ class API {
     class func request(path: String, username: String) -> Observable<String> {
         guard let url = URL(string: apiEndpoint + path) else { return .empty() }
 
-        return Observable<String>.create({ (observer) -> Disposable in
-            _ = URLSession.shared.rx.data(request: URLRequest(url: url))
+        return Observable<String>.create({ (observer) in
+            URLSession.shared.rx.data(request: URLRequest(url: url))
                 .catch({ (error) -> Observable<Data> in
                     observer.onError(error)
                     return .empty()
@@ -38,7 +38,6 @@ class API {
                     observer.onNext(username)
                     observer.onCompleted()
                 })
-            return Disposables.create()
         })
     }
 }
