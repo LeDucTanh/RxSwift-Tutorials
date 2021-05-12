@@ -39,13 +39,6 @@ class ViewController: UIViewController {
             this.showAlert(message: "Logged in as \(username)")
         }
         .disposed(by: disposeBag)
-        
-//        viewModel.onShowAlert.subscribe(
-//            onNext: { [weak self] username in
-//                guard let this = self else { return }
-//                this.showAlert(message: "Logged in as \(username)")
-//            }
-//        ).disposed(by: disposeBag)
     }
     
     private func bind(textField: UITextField, to behaviorRelay: BehaviorRelay<String>) {
